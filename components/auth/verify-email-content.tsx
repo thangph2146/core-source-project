@@ -11,10 +11,15 @@ export default function VerifyEmailContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  const [isMounted, setIsMounted] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   
   const token = searchParams.get("token");
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const verifyEmail = useCallback(async (verificationToken: string) => {
     setIsLoading(true);
@@ -36,10 +41,24 @@ export default function VerifyEmailContent() {
   }, [router]);
 
   useEffect(() => {
-    if (token) {
+    if (token && isMounted) {
       verifyEmail(token);
     }
-  }, [token, verifyEmail]);
+  }, [token, verifyEmail, isMounted]);
+
+  // Không render gì cho đến khi đã mount
+  if (!isMounted) {
+    return (
+      <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col items-center text-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+            <h1 className="text-2xl font-bold">Loading...</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!token) {
     return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthRedux } from '@/hooks/use-auth-redux';
 import { FullPageLoader } from '@/components/ui/loading-spinner';
@@ -14,10 +14,15 @@ export function AuthGuardRedux({ children }: AuthGuardProps) {
   const { isAuthenticated, isLoading } = useAuthRedux();
   const router = useRouter();
   const pathname = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // Chỉ redirect khi không loading
-    if (!isLoading) {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Chỉ redirect khi không loading và đã mount
+    if (!isLoading && isMounted) {
       const needsAuth = isProtectedRoute(pathname);
       const isAuth = isAuthRoute(pathname);
       
@@ -31,10 +36,10 @@ export function AuthGuardRedux({ children }: AuthGuardProps) {
         safeRedirect(router, '/dashboard');
       }
     }
-  }, [isAuthenticated, isLoading, pathname, router]);
+  }, [isAuthenticated, isLoading, pathname, router, isMounted]);
 
-  // Hiển thị loading khi đang kiểm tra auth status
-  if (isLoading) {
+  // Hiển thị loading khi đang kiểm tra auth status hoặc chưa mount
+  if (isLoading || !isMounted) {
     return <FullPageLoader text="Đang kiểm tra trạng thái đăng nhập..." />;
   }
 

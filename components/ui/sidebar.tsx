@@ -46,8 +46,20 @@ const SidebarContext = React.createContext<SidebarContextProps | null>(null)
 
 function useSidebar() {
   const context = React.useContext(SidebarContext)
+  const isMobile = useIsMobile()
+  
   if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider.")
+    // Trả về giá trị mặc định thay vì throw error
+    console.warn("useSidebar được sử dụng ngoài SidebarProvider. Sử dụng giá trị mặc định.")
+    return {
+      state: "expanded" as const,
+      open: true,
+      setOpen: () => {},
+      openMobile: false,
+      setOpenMobile: () => {},
+      isMobile,
+      toggleSidebar: () => {},
+    }
   }
 
   return context
@@ -68,6 +80,11 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -83,7 +100,9 @@ function SidebarProvider({
       }
 
       // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      if (typeof document !== 'undefined') {
+        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      }
     },
     [setOpenProp, open]
   )
@@ -95,6 +114,8 @@ function SidebarProvider({
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
+    if (!isMounted) return
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
@@ -107,7 +128,7 @@ function SidebarProvider({
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [toggleSidebar])
+  }, [toggleSidebar, isMounted])
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
@@ -125,6 +146,15 @@ function SidebarProvider({
     }),
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
+
+  // Không render gì cho đến khi đã mount
+  if (!isMounted) {
+    return (
+      <div className="flex min-h-svh w-full">
+        {children}
+      </div>
+    )
+  }
 
   return (
     <SidebarContext.Provider value={contextValue}>

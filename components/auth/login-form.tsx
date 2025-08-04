@@ -22,6 +22,7 @@ function LoginFormContent({
   ...props
 }: React.ComponentProps<"div">) {
   const [success, setSuccess] = useState<string>("");
+  const [isMounted, setIsMounted] = useState(false);
   const searchParams = useSearchParams();
   const { login, isLoading, error, clearAuthError } = useAuthRedux();
   
@@ -33,22 +34,32 @@ function LoginFormContent({
     resolver: zodResolver(loginSchema),
   });
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Check for success message from URL params
   useEffect(() => {
+    if (!isMounted) return;
+    
     const message = searchParams.get("message");
     if (message) {
       setSuccess(message);
       // Clear the message from URL
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete("message");
-      window.history.replaceState({}, "", newUrl.toString());
+      if (typeof window !== 'undefined') {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("message");
+        window.history.replaceState({}, "", newUrl.toString());
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, isMounted]);
 
   // Clear error when component mounts
   useEffect(() => {
-    clearAuthError();
-  }, [clearAuthError]);
+    if (isMounted) {
+      clearAuthError();
+    }
+  }, [clearAuthError, isMounted]);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -58,6 +69,20 @@ function LoginFormContent({
       console.error('Login error:', err);
     }
   };
+
+  // Không render gì cho đến khi đã mount
+  if (!isMounted) {
+    return (
+      <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-sm md:max-w-3xl">
+          <div className="flex flex-col items-center text-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+            <h1 className="text-2xl font-bold">Loading...</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">

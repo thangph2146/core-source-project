@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import {
   Breadcrumb,
@@ -30,6 +31,16 @@ const routeLabels: Record<string, string> = {
 
 export function DynamicBreadcrumb() {
   const pathname = usePathname()
+  const [isMounted, setIsMounted] = useState(false)
+  
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Không render gì cho đến khi đã mount
+  if (!isMounted) {
+    return null
+  }
   
   // Tạo breadcrumb items từ pathname
   const pathSegments = pathname.split('/').filter(Boolean)
