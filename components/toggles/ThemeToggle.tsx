@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  variant?: "default" | "compact"
+}
+
+export function ThemeToggle({ variant = "default" }: ThemeToggleProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [mounted, setMounted] = useState(false);
 
@@ -27,7 +31,7 @@ export function ThemeToggle() {
   // Don't render anything until mounted to avoid hydration mismatch
   if (!mounted) {
     return (
-      <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10">
+      <button className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${variant === "compact" ? "h-6 w-6" : "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"}`}>
         <span className="sr-only">Toggle theme</span>
         <div className="h-4 w-4" />
       </button>
@@ -37,7 +41,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
+      className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${variant === "compact" ? "h-6 w-6" : "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"}`}
       aria-label="Toggle theme"
     >
       <span className="sr-only">Toggle theme</span>

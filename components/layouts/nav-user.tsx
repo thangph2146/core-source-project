@@ -8,6 +8,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react"
+import { ThemeToggle } from "@/components/toggles/ThemeToggle"
 
 import {
   Avatar,
@@ -109,6 +110,15 @@ export function NavUser({
               <DropdownMenuItem>
                 <Bell />
                 Notifications
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <div className="flex items-center justify-between w-full">
+                  <span>Theme</span>
+                  <ThemeToggle variant="compact" />
+                </div>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

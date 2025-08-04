@@ -37,7 +37,7 @@ export function useAuthRedux() {
     } catch (error) {
       // Log error nhưng không redirect
       console.error('Logout error:', error);
-    }
+    } 
   };
 
   const clearAuthError = () => {

@@ -9,17 +9,17 @@ import {
 } from "@/components/ui/sidebar"
 
 export const metadata: Metadata = {
-    title: "Core Source CMS",
-    description: "Core Source Content Management System",
+  title: "Core Source CMS",
+  description: "Core Source Content Management System",
 };
 
 export default function AdminLayout({
-    children,
+  children,
 }: Readonly<{
-    children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-    return (
-        <SidebarProvider>
+  return (
+    <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2">
@@ -37,5 +37,5 @@ export default function AdminLayout({
         </div>
       </SidebarInset>
     </SidebarProvider>
-      )
+  )
 }
