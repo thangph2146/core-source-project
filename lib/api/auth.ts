@@ -9,26 +9,35 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  confirmPassword: string;
-  firstName?: string;
-  lastName?: string;
+  name: string;
 }
 
 export interface AuthResponse {
-  access_token: string;
   user: {
     id: number;
     email: string;
-    firstName?: string;
-    lastName?: string;
+    name: string;
+    isEmailVerified: boolean;
+    avatar?: string;
+    createdAt: string;
+    updatedAt: string;
   };
+  token: string;
+  message: string;
 }
 
 export interface User {
   id: number;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  name: string;
+  isEmailVerified: boolean;
+  avatar?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CheckEmailResponse {
+  exists: boolean;
 }
 
 export interface HealthResponse {
@@ -53,9 +62,39 @@ class AuthApi {
     return response.data;
   }
 
-  async getProfile(): Promise<{ user: User }> {
-    const response = await apiClient.get<{ user: User }>('/auth/profile');
+  async checkEmail(email: string): Promise<CheckEmailResponse> {
+    const response = await apiClient.get<CheckEmailResponse>('/auth/check-email', {
+      params: { email }
+    });
     return response.data;
+  }
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const response = await apiClient.get<{ message: string }>('/auth/verify-email', {
+      params: { token }
+    });
+    return response.data;
+  }
+
+  async getProfile(): Promise<{ user: User }> {
+    const response = await apiClient.get<{ user: User }>('/auth/me');
+    return response.data;
+  }
+
+  async logout(): Promise<{ message: string }> {
+    try {
+      const token = this.getStoredToken();
+      if (token) {
+        const response = await apiClient.post<{ message: string }>('/auth/logout');
+        return response.data;
+      } else {
+        // Nếu không có token, chỉ trả về message thành công
+        return { message: 'Logged out successfully' };
+      }
+    } catch (error) {
+      // Nếu có lỗi từ server, vẫn coi như logout thành công
+      return { message: 'Logged out successfully' };
+    }
   }
 
   // Health check methods
@@ -74,7 +113,7 @@ class AuthApi {
     return response.data;
   }
 
-  logout() {
+  clearAuthData() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
@@ -84,8 +123,8 @@ class AuthApi {
   saveAuthData(data: AuthResponse) {
     if (typeof window !== 'undefined') {
       logger.info('Saving auth data to localStorage', { userId: data.user.id });
-      localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('access_token', data.token);
       logger.info('Auth data saved successfully');
     }
   }

@@ -1,27 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { authApi, User, AuthResponse } from '@/lib/api/auth';
+import { authApi, User } from '@/lib/api/auth';
 import { logger } from '@/lib/logger';
 
 export default function ApiTest() {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ user: User } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Kiểm tra token và user hiện tại
-    const currentToken = authApi.getStoredToken();
+    // Kiểm tra user hiện tại
     const currentUser = authApi.getStoredUser();
     
-    setToken(currentToken);
     setUser(currentUser);
     
     logger.info('Current auth state:', { 
-      hasToken: !!currentToken, 
       hasUser: !!currentUser,
-      tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : null
+      user: currentUser
     });
   }, []);
 
@@ -49,7 +45,6 @@ export default function ApiTest() {
       });
       authApi.saveAuthData(result);
       setUser(result.user);
-      setToken(result.access_token);
       logger.info('Login success:', { userId: result.user.id });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -58,10 +53,26 @@ export default function ApiTest() {
     }
   };
 
+  const testRegister = async () => {
+    try {
+      setError(null);
+      logger.info('Testing register...');
+      const result = await authApi.register({
+        email: `test-${Date.now()}@example.com`,
+        password: 'password123',
+        name: 'Test User'
+      });
+      logger.info('Register success:', { userId: result.user.id });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      logger.error('Register failed:', { error: errorMessage });
+    }
+  };
+
   const clearAuth = () => {
-    authApi.logout();
+    authApi.clearAuthData();
     setUser(null);
-    setToken(null);
     setProfile(null);
     setError(null);
     logger.info('Auth data cleared');
@@ -74,8 +85,7 @@ export default function ApiTest() {
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Current State:</h3>
         <div className="bg-gray-100 p-4 rounded">
-          <p><strong>Token:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
-          <p><strong>User:</strong> {user ? JSON.stringify(user) : 'None'}</p>
+          <p><strong>User:</strong> {user ? JSON.stringify(user, null, 2) : 'None'}</p>
         </div>
       </div>
 
@@ -87,6 +97,12 @@ export default function ApiTest() {
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
             Test Login
+          </button>
+          <button 
+            onClick={testRegister}
+            className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+          >
+            Test Register
           </button>
           <button 
             onClick={testProfile}

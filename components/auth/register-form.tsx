@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,38 +11,51 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
+import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
 import { authApi } from "@/lib/api/auth";
-import { CheckCircle2, AlertCircle, Loader2, Mail } from "lucide-react";
+import { useAuthRedux } from "@/hooks/use-auth-redux";
+import { AlertCircle, Loader2, User, Mail } from "lucide-react";
+import { Toast } from "@/components/ui/toast";
 
-export function LoginForm({
+export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>("");
-  const router = useRouter();
+  const [success, setSuccess] = useState<string>("");
+  const [emailExists, setEmailExists] = useState<boolean>(false);
+  const { register, isLoading, error, clearAuthError } = useAuthRedux();
   
   const {
-    register,
+    register: registerField,
     handleSubmit,
+    watch,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
-    setError("");
-    
+  const watchedEmail = watch("email");
+
+  // Check email availability when email changes
+  const checkEmailAvailability = async (email: string) => {
+    if (email && email.includes('@')) {
+      try {
+        const response = await authApi.checkEmail(email);
+        setEmailExists(response.exists);
+      } catch (err) {
+        console.error('Error checking email:', err);
+      }
+    }
+  };
+
+  const onSubmit = async (data: RegisterFormData) => {
     try {
-      const response = await authApi.login(data);
-      authApi.saveAuthData(response);
-      router.push("/dashboard");
+      await register(data.email, data.password, data.name);
+      setSuccess("Tài khoản đã được tạo thành công! Vui lòng kiểm tra email để xác thực tài khoản.");
+      // AuthGuard sẽ tự động redirect khi auth state thay đổi
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setIsLoading(false);
+      // Error is handled by Redux state
+      console.error('Registration error:', err);
     }
   };
 
@@ -55,22 +68,56 @@ export function LoginForm({
               <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
                 <div className="flex flex-col gap-6">
                   <div className="flex flex-col items-center text-center">
-                    <h1 className="text-2xl font-bold">Welcome back</h1>
+                    <h1 className="text-2xl font-bold">Create your account</h1>
                     <p className="text-muted-foreground text-balance">
-                      Login to your Core Source account
+                      Sign up to get started with Core Source
                     </p>
                   </div>
                   
                   {error && (
-                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
-                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                      <span>{error}</span>
-                    </div>
+                    <Toast
+                      type="error"
+                      description={error}
+                      onClose={clearAuthError}
+                    />
+                  )}
+                  
+                  {success && (
+                    <Toast
+                      type="success"
+                      description={success}
+                    />
                   )}
                   
                   <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium">
+                      Full Name <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        type="text"
+                        autoComplete="name"
+                        placeholder="Enter your full name"
+                        {...registerField("name")}
+                        className={cn(
+                          "pl-10 transition-colors",
+                          errors.name ? "border-red-500 focus-visible:ring-red-500" : ""
+                        )}
+                      />
+                    </div>
+                    {errors.name && (
+                      <span className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.name.message}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-medium">
-                      Email Address
+                      Email Address <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -79,10 +126,12 @@ export function LoginForm({
                         type="email"
                         autoComplete="email"
                         placeholder="Enter your email address"
-                        {...register("email")}
+                        {...registerField("email")}
+                        onBlur={() => checkEmailAvailability(watchedEmail)}
                         className={cn(
-                          "pl-10 h-11 transition-colors",
-                          errors.email ? "border-red-500 focus-visible:ring-red-500" : ""
+                          "pl-10 transition-colors",
+                          errors.email ? "border-red-500 focus-visible:ring-red-500" : "",
+                          emailExists ? "border-orange-500 focus-visible:ring-orange-500" : ""
                         )}
                       />
                     </div>
@@ -92,27 +141,25 @@ export function LoginForm({
                         {errors.email.message}
                       </span>
                     )}
+                    {emailExists && watchedEmail && (
+                      <span className="text-xs text-orange-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Email này đã được đăng ký
+                      </span>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-sm font-medium">
-                        Password
-                      </Label>
-                      <Link
-                        href="#"
-                        className="text-xs text-muted-foreground hover:text-primary underline-offset-2 hover:underline transition-colors"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
+                    <Label htmlFor="password" className="text-sm font-medium">
+                      Password <span className="text-red-500">*</span>
+                    </Label>
                     <PasswordInput
                       id="password"
-                      autoComplete="current-password"
-                      placeholder="Enter your password"
-                      {...register("password")}
+                      autoComplete="new-password"
+                      placeholder="Create a strong password (min 6 characters)"
+                      {...registerField("password")}
                       className={cn(
-                        "h-11 transition-colors",
+                        "transition-colors",
                         errors.password ? "border-red-500 focus-visible:ring-red-500" : ""
                       )}
                     />
@@ -127,22 +174,24 @@ export function LoginForm({
                   <Button 
                     type="submit" 
                     className="w-full h-11 text-base font-medium transition-all duration-200" 
-                    disabled={isLoading}
+                    disabled={isLoading || emailExists}
                   >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
+                        Creating your account...
                       </>
                     ) : (
-                      "Sign In"
+                      "Create Account"
                     )}
                   </Button>
+                  
                   <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                     <span className="bg-card text-muted-foreground relative z-10 px-2">
                       Or continue with
                     </span>
                   </div>
+                  
                   <div className="grid grid-cols-3 gap-4">
                     <Button variant="outline" type="button" className="w-full">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -151,7 +200,7 @@ export function LoginForm({
                           fill="currentColor"
                         />
                       </svg>
-                      <span className="sr-only">Login with Apple</span>
+                      <span className="sr-only">Sign up with Apple</span>
                     </Button>
                     <Button variant="outline" type="button" className="w-full">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -160,7 +209,7 @@ export function LoginForm({
                           fill="currentColor"
                         />
                       </svg>
-                      <span className="sr-only">Login with Google</span>
+                      <span className="sr-only">Sign up with Google</span>
                     </Button>
                     <Button variant="outline" type="button" className="w-full">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -169,13 +218,14 @@ export function LoginForm({
                           fill="currentColor"
                         />
                       </svg>
-                      <span className="sr-only">Login with Meta</span>
+                      <span className="sr-only">Sign up with Meta</span>
                     </Button>
                   </div>
+                  
                   <div className="text-center text-sm">
-                    Don&apos;t have an account?{" "}
-                    <Link href="/register" className="underline underline-offset-4">
-                      Sign up
+                    Already have an account?{" "}
+                    <Link href="/login" className="underline underline-offset-4">
+                      Sign in
                     </Link>
                   </div>
                 </div>
@@ -196,5 +246,5 @@ export function LoginForm({
         </div>
       </div>
     </div>
-  )
+  );
 }

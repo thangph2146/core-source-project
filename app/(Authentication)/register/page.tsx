@@ -1,7 +1,7 @@
-import { RegisterForm } from "@/modules/register"
+import { RegisterForm } from "@/components/auth/register-form";
 
 export default function RegisterPage() {
   return (
     <RegisterForm />
-  )
+  );
 } 

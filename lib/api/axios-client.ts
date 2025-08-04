@@ -39,12 +39,12 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      logger.error('Unauthorized request, redirecting to login');
+      // Token expired or invalid - chỉ clear data, không redirect
+      logger.error('Unauthorized request detected');
       if (typeof window !== 'undefined') {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Để AuthGuard handle redirect thay vì redirect ở đây
       }
     }
     return Promise.reject(error);
