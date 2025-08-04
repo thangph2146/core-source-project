@@ -91,7 +91,7 @@ class AuthApi {
         // Nếu không có token, chỉ trả về message thành công
         return { message: 'Logged out successfully' };
       }
-    } catch (error) {
+    } catch {
       // Nếu có lỗi từ server, vẫn coi như logout thành công
       return { message: 'Logged out successfully' };
     }

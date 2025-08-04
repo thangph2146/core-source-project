@@ -15,6 +15,7 @@ import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
 import { useAuthRedux } from "@/hooks/use-auth-redux";
 import { AlertCircle, Loader2, Mail } from "lucide-react";
 import { Toast } from "@/components/ui/toast";
+import Image from "next/image";
 
 function LoginFormContent({
   className,
@@ -201,10 +202,11 @@ function LoginFormContent({
                 </div>
               </form>
               <div className="bg-muted relative hidden md:block">
-                <img
+                <Image
                   src="https://ui.shadcn.com/placeholder.svg"
                   alt="Image"
-                  className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                  fill
+                  className="object-cover dark:brightness-[0.2] dark:grayscale"
                 />
               </div>
             </CardContent>
