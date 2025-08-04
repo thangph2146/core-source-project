@@ -1,46 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Link from "next/link"
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
+import { authApi } from "@/lib/api/auth";
+import { CheckCircle2, AlertCircle, Loader2, User, Mail } from "lucide-react";
 
 export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
+  const router = useRouter();
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: RegisterFormData) => {
+    setIsLoading(true);
     setError("");
     setSuccess("");
-    if (!email || !password || !confirm) {
-      setError("Please fill in all fields.");
-      return;
+    
+    try {
+      const response = await authApi.register(data);
+      authApi.saveAuthData(response);
+      setSuccess("Account created successfully! Redirecting...");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setIsLoading(false);
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    setLoading(true);
-    // TODO: Call registration API here
-    setTimeout(() => {
-      setLoading(false);
-      setSuccess("Account created successfully!");
-    }, 1200);
   };
 
   return (
@@ -49,55 +57,173 @@ export function RegisterForm({
         <div className={cn("flex flex-col gap-6", className)} {...props}>
           <Card className="overflow-hidden p-0">
             <CardContent className="grid p-0 md:grid-cols-2">
-              <form className="p-6 md:p-8" onSubmit={handleSubmit}>
+              <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
                 <div className="flex flex-col gap-6">
                   <div className="flex flex-col items-center text-center">
                     <h1 className="text-2xl font-bold">Create your account</h1>
                     <p className="text-muted-foreground text-balance">
-                      Sign up to get started with Acme Inc
+                      Sign up to get started with Core Source
                     </p>
                   </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="m@example.com"
-                      required
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                    />
+                  
+                  {error && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+                  
+                  {success && (
+                    <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-md border border-green-200">
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                      <span>{success}</span>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName" className="text-sm font-medium">
+                        First Name
+                      </Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="firstName"
+                          type="text"
+                          autoComplete="given-name"
+                          placeholder="Enter your first name"
+                          {...register("firstName")}
+                          className={cn(
+                            "pl-10 transition-colors",
+                            errors.firstName ? "border-red-500 focus-visible:ring-red-500" : ""
+                          )}
+                        />
+                      </div>
+                      {errors.firstName && (
+                        <span className="text-xs text-red-600 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {errors.firstName.message}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName" className="text-sm font-medium">
+                        Last Name
+                      </Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="lastName"
+                          type="text"
+                          autoComplete="family-name"
+                          placeholder="Enter your last name"
+                          {...register("lastName")}
+                          className={cn(
+                            "pl-10 transition-colors",
+                            errors.lastName ? "border-red-500 focus-visible:ring-red-500" : ""
+                          )}
+                        />
+                      </div>
+                      {errors.lastName && (
+                        <span className="text-xs text-red-600 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {errors.lastName.message}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      Email Address <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="Enter your email address"
+                        {...register("email")}
+                        className={cn(
+                          "pl-10 transition-colors",
+                          errors.email ? "border-red-500 focus-visible:ring-red-500" : ""
+                        )}
+                      />
+                    </div>
+                    {errors.email && (
+                      <span className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.email.message}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium">
+                      Password <span className="text-red-500">*</span>
+                    </Label>
+                    <PasswordInput
                       id="password"
-                      type="password"
-                      required
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
+                      autoComplete="new-password"
+                      placeholder="Create a strong password (min 6 characters)"
+                      {...register("password")}
+                      className={cn(
+                        "transition-colors",
+                        errors.password ? "border-red-500 focus-visible:ring-red-500" : ""
+                      )}
                     />
+                    {errors.password && (
+                      <span className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.password.message}
+                      </span>
+                    )}
                   </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="confirm">Confirm Password</Label>
-                    <Input
-                      id="confirm"
-                      type="password"
-                      required
-                      value={confirm}
-                      onChange={e => setConfirm(e.target.value)}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                      Confirm Password <span className="text-red-500">*</span>
+                    </Label>
+                    <PasswordInput
+                      id="confirmPassword"
+                      autoComplete="new-password"
+                      placeholder="Re-enter your password"
+                      {...register("confirmPassword")}
+                      className={cn(
+                        "transition-colors",
+                        errors.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""
+                      )}
                     />
+                    {errors.confirmPassword && (
+                      <span className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.confirmPassword.message}
+                      </span>
+                    )}
                   </div>
-                  {error && <div className="text-red-500 text-sm">{error}</div>}
-                  {success && <div className="text-green-600 text-sm">{success}</div>}
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Creating account..." : "Sign up"}
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full h-11 text-base font-medium transition-all duration-200" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating your account...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
                   </Button>
+                  
                   <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                     <span className="bg-card text-muted-foreground relative z-10 px-2">
                       Or continue with
                     </span>
                   </div>
+                  
                   <div className="grid grid-cols-3 gap-4">
                     <Button variant="outline" type="button" className="w-full">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -127,6 +253,7 @@ export function RegisterForm({
                       <span className="sr-only">Sign up with Meta</span>
                     </Button>
                   </div>
+                  
                   <div className="text-center text-sm">
                     Already have an account?{" "}
                     <Link href="/login" className="underline underline-offset-4">
@@ -151,5 +278,5 @@ export function RegisterForm({
         </div>
       </div>
     </div>
-  )
+  );
 }

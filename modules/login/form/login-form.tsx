@@ -1,51 +1,142 @@
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Link from "next/link"
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
+import { authApi } from "@/lib/api/auth";
+import { CheckCircle2, AlertCircle, Loader2, Mail } from "lucide-react";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const router = useRouter();
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      const response = await authApi.login(data);
+      authApi.saveAuthData(response);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm md:max-w-3xl">
         <div className={cn("flex flex-col gap-6", className)} {...props}>
           <Card className="overflow-hidden p-0">
             <CardContent className="grid p-0 md:grid-cols-2">
-              <form className="p-6 md:p-8">
+              <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
                 <div className="flex flex-col gap-6">
                   <div className="flex flex-col items-center text-center">
                     <h1 className="text-2xl font-bold">Welcome back</h1>
                     <p className="text-muted-foreground text-balance">
-                      Login to your Acme Inc account
+                      Login to your Core Source account
                     </p>
                   </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="m@example.com"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-3">
-                    <div className="flex items-center">
-                      <Label htmlFor="password">Password</Label>
-                      <a
-                        href="#"
-                        className="ml-auto text-sm underline-offset-2 hover:underline"
-                      >
-                        Forgot your password?
-                      </a>
+                  
+                  {error && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      <span>{error}</span>
                     </div>
-                    <Input id="password" type="password" required />
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      Email Address
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="Enter your email address"
+                        {...register("email")}
+                        className={cn(
+                          "pl-10 h-11 transition-colors",
+                          errors.email ? "border-red-500 focus-visible:ring-red-500" : ""
+                        )}
+                      />
+                    </div>
+                    {errors.email && (
+                      <span className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.email.message}
+                      </span>
+                    )}
                   </div>
-                  <Button type="submit" className="w-full">
-                    Login
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-sm font-medium">
+                        Password
+                      </Label>
+                      <Link
+                        href="#"
+                        className="text-xs text-muted-foreground hover:text-primary underline-offset-2 hover:underline transition-colors"
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <PasswordInput
+                      id="password"
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      {...register("password")}
+                      className={cn(
+                        "h-11 transition-colors",
+                        errors.password ? "border-red-500 focus-visible:ring-red-500" : ""
+                      )}
+                    />
+                    {errors.password && (
+                      <span className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.password.message}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full h-11 text-base font-medium transition-all duration-200" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
                   </Button>
                   <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                     <span className="bg-card text-muted-foreground relative z-10 px-2">
