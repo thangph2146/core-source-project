@@ -1,4 +1,5 @@
-import apiClient from './axios-client';
+import { apiClient } from './axios-client';
+import { logger } from '@/lib/logger';
 
 export interface LoginRequest {
   email: string;
@@ -82,8 +83,10 @@ class AuthApi {
 
   saveAuthData(data: AuthResponse) {
     if (typeof window !== 'undefined') {
+      logger.info('Saving auth data to localStorage', { userId: data.user.id });
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      logger.info('Auth data saved successfully');
     }
   }
 

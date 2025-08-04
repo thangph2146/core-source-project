@@ -3,7 +3,6 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
-import link from "next/link";
 
 export default function HeroSectionOne() {
   return (

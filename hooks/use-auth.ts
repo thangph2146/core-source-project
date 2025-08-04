@@ -41,8 +41,8 @@ export const useLogin = () => {
       // Redirect to dashboard
       router.push('/dashboard');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || error?.message || 'Đăng nhập thất bại';
+    onError: (error: unknown) => {
+      const message = (error as Error)?.message || 'Đăng nhập thất bại';
       toast.error(message);
     },
   });
@@ -68,8 +68,8 @@ export const useRegister = () => {
       // Redirect to dashboard
       router.push('/dashboard');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || error?.message || 'Đăng ký thất bại';
+    onError: (error: unknown) => {
+      const message = (error as Error)?.message || 'Đăng ký thất bại';
       toast.error(message);
     },
   });
